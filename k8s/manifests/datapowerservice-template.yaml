@@ -1,0 +1,141 @@
+apiVersion: datapower.ibm.com/v1beta3
+kind: DataPowerService
+metadata:
+  name: PARM_DP_SERVICE_NAME
+  namespace: cp4i
+  labels:
+    app.kubernetes.io/instance: PARM_DP_SERVICE_NAME
+    app.kubernetes.io/name: PARM_DP_SERVICE_NAME
+    app.kubernetes.io/managed-by: datapower-operator
+spec:
+  license:
+    accept: true
+    license: L-RJON-CCAT5F
+    use: nonproduction
+  replicas: PARM_REPLICA_COUNT
+  resources:
+    requests:
+      cpu: PARM_LIMITS_CPU
+      memory: PARM_LIMITS_MEMORY
+    limits:
+      memory: PARM_LIMITS_MEMORY   
+  imagePullSecrets:
+    - ibm-entitlement-key
+  annotations:
+    productMetric: VIRTUAL_PROCESSOR_CORE
+  users:
+  - name: admin
+    passwordSecret: admin-credentials
+    accessLevel: privileged
+  version: 10.5-lts
+  env:
+  - name: DATAPOWER_LOG_LEVEL
+    value: "3" 
+  domains:
+  - name: "default"
+    dpApp:
+      config:
+      - "web-mgmt"
+  - name: "IDP"
+    certs:
+    - certType: "usrcerts"
+      secret: "idp-privkey"
+    - certType: "usrcerts"
+      secret: "idp-sscert"
+    dpApp:
+      config:
+      - "idp-config"
+      local:
+      - "idp-local"
+  env:
+    - name: ADP_PEERING_ENABLE_SSL
+      value: 'on'
+    - name: ADP_PEERING_LOCAL_PORT
+      value: '16382'
+    - name: ADP_PEERING_MONITOR_PORT
+      value: '26382'
+    - name: APICONNECT_API_DEBUG_PROBE
+      value: enabled
+    - name: APICONNECT_DEDICATED_RL_PEERING
+      value: 'on'
+    - name: APICONNECT_DEDICATED_SUBS_PEERING
+      value: 'on'
+    - name: APICONNECT_ENABLE_TMS
+      value: 'off'
+    - name: APICONNECT_K8S_NAMESPACE
+      value: cp4i
+    - name: APICONNECT_K8S_PEERS_SVC_NAME
+      value: ademo-gw-headless
+    - name: APICONNECT_V5_COMPAT_MODE
+      value: 'off'
+    - name: DATAPOWER_ACCEPT_LICENSE
+      value: 'true'
+    - name: DATAPOWER_INTERACTIVE
+      value: 'true'
+    - name: DATAPOWER_LOG_COLOR
+      value: 'false'
+    - name: DATAPOWER_LOG_FORMAT
+      value: text
+    - name: DATAPOWER_LOG_LEVEL
+      value: '3'
+    - name: DATAPOWER_SYSLOG_TCP_STATE
+      value: disabled
+    - name: GATEWAY_PEERING_ENABLE_SSL
+      value: 'on'
+    - name: GATEWAY_PEERING_LOCAL_PORT
+      value: '16380'
+    - name: GATEWAY_PEERING_MONITOR_PORT
+      value: '26380'
+    - name: PEERING_LOG_LEVEL
+      value: internal
+    - name: PROBE_SERVER_PORT
+      value: '2999'
+    - name: TMS_PEERING_ENABLE_SSL
+      value: 'on'
+    - name: TMS_PEERING_LOCAL_PORT
+      value: '16381'
+    - name: TMS_PEERING_MONITOR_PORT
+      value: '26381'    
+    - name: nonproduction-image
+      value: >-
+        ibm-apiconnect-gateway-datapower-nonprod@sha256:073867c11ae00d09a971f155ba5fe1f682910cdccfcee988f66fbd2a774b3fd4
+    - name: production-image
+      value: >-
+        ibm-apiconnect-gateway-datapower-prod@sha256:fecdc6fdedf72b317f7c87ac314bcd05035da6550f43b8244ba413daf3dc6f77
+    - name: K8S_DPM_DEBUG
+      value: "*"
+  imagePullPolicy: IfNotPresent
+  version: 10.5.0.2
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  readinessProbe:
+    failureThreshold: 3
+    httpGet:
+      path: /ready
+      port: 2999
+      scheme: HTTP
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    timeoutSeconds: 5
+  terminationGracePeriodSeconds: 30
+  healthCheck:
+    logLevel: info
+    probe:
+      port: 7879
+    watchdog:
+      enabled: false
+      hardTimeoutSeconds: 80
+      softTimeoutSeconds: 60
+  createServiceBinding: automatic
+  livenessProbe:
+    failureThreshold: 5
+    httpGet:
+      path: /health
+      port: 2999
+      scheme: HTTP
+    initialDelaySeconds: 180
+    periodSeconds: 10
+    timeoutSeconds: 5
+  updateStrategy:
+    mode: automatic
+    rolloutHistoryLimit: 10
